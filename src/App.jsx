@@ -1,11 +1,93 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { AuthProvider } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
+import Layout from './components/Layout';
+import Landing from './pages/Landing';
+import Login from './pages/Login';
+import Dashboard from './pages/Dashboard';
+import Usuarios from './pages/Usuarios';
+import Pacientes from './pages/Pacientes';
+import Alertas from './pages/Alertas';
+import Farmacia from './pages/Farmacia';
+import Umbrales from './pages/Umbrales';
+
 function App() {
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center">
-      <h1 className="text-3xl font-bold text-blue-600">
-        Hospital HIS Web App
-      </h1>
-      <p className="text-gray-600 mt-2">Sistema de Información Hospitalaria listo para desarrollar.</p>
-    </div>
+    <AuthProvider>
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route
+            path="/login"
+            element={
+              <Layout>
+                <Login />
+              </Layout>
+            }
+          />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Dashboard />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/usuarios"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Usuarios />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/pacientes"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Pacientes />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/alertas"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Alertas />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/farmacia"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Farmacia />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/umbrales"
+            element={
+              <ProtectedRoute>
+                <Layout>
+                  <Umbrales />
+                </Layout>
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </BrowserRouter>
+    </AuthProvider>
   );
 }
 

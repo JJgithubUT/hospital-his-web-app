@@ -1,1 +1,28 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400&family=Syne:wght@400;600;700;800&display=swap');
+
+@theme {
+  --color-bg: #141414;
+  --color-surface: #1e1e1e;
+  --color-surface-2: #252525;
+  --color-surface-3: #2e2e2e;
+  --color-pink: #f0a090;
+  --color-pink-dark: #c06050;
+  --color-yellow: #e8e030;
+  --color-green: #50d870;
+  --color-green-dark: #28a050;
+  --color-red: #f04060;
+  --color-blue: #60b8f8;
+  --color-cream: #f5f5f0;
+  --color-muted: #888880;
+  --color-border: #333330;
+
+  --font-mono: 'Space Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  --font-ui: 'Syne', system-ui, sans-serif;
+}
+
+body {
+  background: var(--color-bg);
+  color: var(--color-cream);
+  font-family: var(--font-ui);
+}
