@@ -13,6 +13,9 @@ export default function Navbar() {
     <nav className="sticky top-0 z-50 flex items-center border-b border-border bg-bg px-8">
       <Link
         to="/"
+        onClick={() => {
+          if (isAuthenticated) logout();
+        }}
         className="mr-12 py-5 font-mono text-sm font-bold tracking-wide text-pink"
       >
         Hospit<span className="text-cream">OS</span>

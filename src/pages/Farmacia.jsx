@@ -1,6 +1,147 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { adjustStock, subscribeInventario } from '../data/inventory';
+import { adjustStock, subscribeInventario, updateInventarioItem } from '../data/inventory';
+
+function EditItemModal({ item, onClose, adminId }) {
+  const [nombre, setNombre] = useState(item.nombre || '');
+  const [presentacion, setPresentacion] = useState(item.presentacion || '');
+  const [dosisSugerida, setDosisSugerida] = useState(item.dosisSugerida || '');
+  const [via, setVia] = useState(item.via || '');
+  const [stock, setStock] = useState(item.stock ?? 0);
+  const [stockMinimo, setStockMinimo] = useState(item.stockMinimo ?? 0);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+    setSaving(true);
+    try {
+      await updateInventarioItem(
+        item.id,
+        { nombre, presentacion, dosisSugerida, via, stock, stockMinimo },
+        adminId,
+      );
+      onClose();
+    } catch (err) {
+      setError(err.message || 'No se pudo actualizar el medicamento.');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
+      <div className="w-full max-w-md rounded-xl border border-border bg-surface-2 p-6">
+        <form onSubmit={handleSubmit}>
+          <h3 className="font-mono font-semibold text-cream">Editar medicamento</h3>
+
+          <label className="mt-4 block text-sm text-muted" htmlFor="edit-nombre">
+            Nombre
+          </label>
+          <input
+            id="edit-nombre"
+            required
+            value={nombre}
+            onChange={(event) => setNombre(event.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+          />
+
+          <label className="mt-4 block text-sm text-muted" htmlFor="edit-presentacion">
+            Presentación
+          </label>
+          <input
+            id="edit-presentacion"
+            required
+            value={presentacion}
+            onChange={(event) => setPresentacion(event.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+          />
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-muted" htmlFor="edit-via">
+                Vía
+              </label>
+              <input
+                id="edit-via"
+                required
+                value={via}
+                onChange={(event) => setVia(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-muted" htmlFor="edit-dosis">
+                Dosis sugerida
+              </label>
+              <input
+                id="edit-dosis"
+                required
+                value={dosisSugerida}
+                onChange={(event) => setDosisSugerida(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+              />
+            </div>
+          </div>
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-muted" htmlFor="edit-stock">
+                Stock
+              </label>
+              <input
+                id="edit-stock"
+                type="number"
+                min="0"
+                required
+                value={stock}
+                onChange={(event) => setStock(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-muted" htmlFor="edit-stock-min">
+                Stock mínimo
+              </label>
+              <input
+                id="edit-stock-min"
+                type="number"
+                min="0"
+                required
+                value={stockMinimo}
+                onChange={(event) => setStockMinimo(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+              />
+            </div>
+          </div>
+
+          {error && (
+            <p className="mt-4 rounded-lg border border-red bg-red/10 px-3 py-2 text-sm text-red">
+              {error}
+            </p>
+          )}
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-border px-4 py-2 text-sm text-cream transition hover:bg-surface-3"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-lg bg-pink px-4 py-2 text-sm font-semibold text-bg transition hover:opacity-90 disabled:opacity-60"
+            >
+              {saving ? 'Guardando…' : 'Guardar cambios'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
 
 export default function Farmacia() {
   const { session } = useAuth();
@@ -9,6 +150,7 @@ export default function Farmacia() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState(null);
+  const [editing, setEditing] = useState(null);
 
   useEffect(() => {
     const unsubscribe = subscribeInventario(
@@ -127,6 +269,12 @@ export default function Farmacia() {
                           >
                             +
                           </button>
+                          <button
+                            onClick={() => setEditing(item)}
+                            className="rounded-lg border border-border px-3 py-1.5 text-xs text-cream transition hover:bg-surface-3"
+                          >
+                            Editar
+                          </button>
                         </div>
                       </td>
                     </tr>
@@ -137,6 +285,10 @@ export default function Farmacia() {
           </div>
         )}
       </main>
+
+      {editing && (
+        <EditItemModal item={editing} onClose={() => setEditing(null)} adminId={session?.id} />
+      )}
     </>
   );
 }

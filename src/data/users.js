@@ -17,7 +17,7 @@ const PREFIXES = {
   farmaceutico: 'FAR',
 };
 
-const isClinical = (role) => role === 'medico' || role === 'enfermero';
+export const isClinical = (role) => role === 'medico' || role === 'enfermero';
 
 const randomInt = (max) => Math.floor(Math.random() * max);
 
@@ -55,6 +55,30 @@ export async function createUsuario({ nombre, rol, email, password }) {
 
   await push(usuariosRef, payload);
   return { codigo, pin, email };
+}
+
+export async function updateUsuario(uid, { nombre, rol, codigo, pin, email, password }) {
+  const clinical = isClinical(rol);
+  const payload = {
+    nombre,
+    rol,
+    ...(clinical
+      ? {
+          codigo,
+          pin,
+          email: null,
+          password: null,
+        }
+      : {
+          email: email?.trim().toLowerCase(),
+          password,
+          codigo: null,
+          pin: null,
+          bloqueado: null,
+          intentosFallidos: null,
+        }),
+  };
+  await update(ref(rtdb, `usuarios/${uid}`), payload);
 }
 
 export async function setUsuarioActive(uid, active) {

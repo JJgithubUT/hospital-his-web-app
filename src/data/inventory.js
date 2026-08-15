@@ -30,3 +30,20 @@ export async function adjustStock(itemId, delta, adminId) {
     actualizadoPor: adminId || null,
   });
 }
+
+export async function updateInventarioItem(
+  itemId,
+  { nombre, presentacion, dosisSugerida, via, stock, stockMinimo },
+  adminId,
+) {
+  await update(ref(rtdb, `inventario/${itemId}`), {
+    nombre,
+    presentacion,
+    dosisSugerida,
+    via,
+    stock: Number(stock),
+    stockMinimo: Number(stockMinimo),
+    actualizadoEn: new Date().toISOString(),
+    actualizadoPor: adminId || null,
+  });
+}

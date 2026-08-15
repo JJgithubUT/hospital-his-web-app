@@ -66,3 +66,15 @@ export async function admitirPaciente({ nombre, edad, habitacion, cama, diagnost
 export async function setPacienteActive(id, active) {
   await update(ref(rtdb, `pacientes/${id}`), { activo: active });
 }
+
+export async function updatePaciente(id, { nombre, edad, habitacion, cama, diagnosticos, estado, medicoAsignado }) {
+  await update(ref(rtdb, `pacientes/${id}`), {
+    nombre,
+    edad,
+    habitacion,
+    cama: cama.toUpperCase(),
+    diagnosticos,
+    estado,
+    medicoAsignado: medicoAsignado || null,
+  });
+}

@@ -6,6 +6,7 @@ import {
   admitirPaciente,
   setPacienteActive,
   subscribePacientes,
+  updatePaciente,
 } from '../data/patients';
 
 function AdmitModal({ onClose, adminId }) {
@@ -226,6 +227,162 @@ function DetailModal({ patient, onClose }) {
   );
 }
 
+function EditModal({ patient, onClose }) {
+  const [nombre, setNombre] = useState(patient.nombre || '');
+  const [edad, setEdad] = useState(patient.edad ?? '');
+  const [habitacion, setHabitacion] = useState(patient.habitacion || '');
+  const [cama, setCama] = useState(patient.cama || '');
+  const [diagnosticos, setDiagnosticos] = useState((patient.diagnosticos || []).join(', '));
+  const [estado, setEstado] = useState(patient.estado || 'estable');
+  const [medicoAsignado, setMedicoAsignado] = useState(patient.medicoAsignado || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+    setSaving(true);
+    try {
+      await updatePaciente(patient.id, {
+        nombre,
+        edad: Number(edad),
+        habitacion,
+        cama,
+        diagnosticos: diagnosticos
+          .split(',')
+          .map((d) => d.trim())
+          .filter(Boolean),
+        estado,
+        medicoAsignado,
+      });
+      onClose();
+    } catch (err) {
+      setError(err.message || 'No se pudo actualizar el expediente.');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
+      <div className="w-full max-w-md rounded-xl border border-border bg-surface-2 p-6">
+        <form onSubmit={handleSubmit}>
+          <h3 className="font-mono font-semibold text-cream">Editar expediente</h3>
+
+          <label className="mt-4 block text-sm text-muted" htmlFor="edit-nombre">
+            Nombre
+          </label>
+          <input
+            id="edit-nombre"
+            required
+            value={nombre}
+            onChange={(event) => setNombre(event.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+          />
+
+          <label className="mt-4 block text-sm text-muted" htmlFor="edit-edad">
+            Edad
+          </label>
+          <input
+            id="edit-edad"
+            type="number"
+            min="0"
+            required
+            value={edad}
+            onChange={(event) => setEdad(event.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+          />
+
+          <div className="mt-4 grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-sm text-muted" htmlFor="edit-habitacion">
+                Cuarto
+              </label>
+              <input
+                id="edit-habitacion"
+                required
+                value={habitacion}
+                onChange={(event) => setHabitacion(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-muted" htmlFor="edit-cama">
+                Cama
+              </label>
+              <input
+                id="edit-cama"
+                required
+                value={cama}
+                onChange={(event) => setCama(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+              />
+            </div>
+          </div>
+
+          <label className="mt-4 block text-sm text-muted" htmlFor="edit-diagnosticos">
+            Diagnósticos (separados por coma)
+          </label>
+          <input
+            id="edit-diagnosticos"
+            value={diagnosticos}
+            onChange={(event) => setDiagnosticos(event.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+          />
+
+          <label className="mt-4 block text-sm text-muted" htmlFor="edit-estado">
+            Estado
+          </label>
+          <select
+            id="edit-estado"
+            value={estado}
+            onChange={(event) => setEstado(event.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+          >
+            {Object.entries(STATUS_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+
+          <label className="mt-4 block text-sm text-muted" htmlFor="edit-medico">
+            Médico asignado
+          </label>
+          <input
+            id="edit-medico"
+            value={medicoAsignado}
+            onChange={(event) => setMedicoAsignado(event.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+          />
+
+          {error && (
+            <p className="mt-4 rounded-lg border border-red bg-red/10 px-3 py-2 text-sm text-red">
+              {error}
+            </p>
+          )}
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-border px-4 py-2 text-sm text-cream transition hover:bg-surface-3"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-lg bg-pink px-4 py-2 text-sm font-semibold text-bg transition hover:opacity-90 disabled:opacity-60"
+            >
+              {saving ? 'Guardando…' : 'Guardar cambios'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function Pacientes() {
   const { session } = useAuth();
   const [pacientes, setPacientes] = useState([]);
@@ -233,6 +390,7 @@ export default function Pacientes() {
   const [error, setError] = useState('');
   const [showAdmit, setShowAdmit] = useState(false);
   const [selected, setSelected] = useState(null);
+  const [editing, setEditing] = useState(null);
   const [busyId, setBusyId] = useState(null);
 
   useEffect(() => {
@@ -337,13 +495,21 @@ export default function Pacientes() {
                       </button>
                     </td>
                     <td className="px-4 py-3 text-right">
-                      <button
-                        disabled={busyId === patient.id}
-                        onClick={() => toggleActive(patient)}
-                        className="rounded-lg border border-border px-3 py-1.5 text-xs text-cream transition hover:bg-surface-3 disabled:opacity-60"
-                      >
-                        {patient.activo ? 'Dar de baja' : 'Reactivar'}
-                      </button>
+                      <div className="flex justify-end gap-2">
+                        <button
+                          onClick={() => setEditing(patient)}
+                          className="rounded-lg border border-border px-3 py-1.5 text-xs text-cream transition hover:bg-surface-3"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          disabled={busyId === patient.id}
+                          onClick={() => toggleActive(patient)}
+                          className="rounded-lg border border-border px-3 py-1.5 text-xs text-cream transition hover:bg-surface-3 disabled:opacity-60"
+                        >
+                          {patient.activo ? 'Dar de baja' : 'Reactivar'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -357,6 +523,7 @@ export default function Pacientes() {
         <AdmitModal onClose={() => setShowAdmit(false)} adminId={session?.id} />
       )}
       {selected && <DetailModal patient={selected} onClose={() => setSelected(null)} />}
+      {editing && <EditModal patient={editing} onClose={() => setEditing(null)} />}
     </>
   );
 }

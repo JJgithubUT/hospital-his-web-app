@@ -2,9 +2,11 @@ import { useEffect, useState } from 'react';
 import {
   ROLE_LABELS,
   createUsuario,
+  isClinical,
   setUsuarioActive,
   subscribeUsuarios,
   unblockUsuario,
+  updateUsuario,
 } from '../data/users';
 
 const ROLE_DOT = {
@@ -14,9 +16,7 @@ const ROLE_DOT = {
   administrador: 'bg-red',
 };
 
-const isClinical = (rol) => rol === 'medico' || rol === 'enfermero';
-
-function NewUserModal({ onClose, onCreated }) {
+function NewUserModal({ onClose }) {
   const [nombre, setNombre] = useState('');
   const [rol, setRol] = useState('medico');
   const [email, setEmail] = useState('');
@@ -34,7 +34,6 @@ function NewUserModal({ onClose, onCreated }) {
     try {
       const result = await createUsuario({ nombre, rol, email, password });
       setCreated(result);
-      onCreated();
     } catch (err) {
       setError(err.message || 'No se pudo crear el usuario.');
     } finally {
@@ -167,11 +166,150 @@ function NewUserModal({ onClose, onCreated }) {
   );
 }
 
+function EditUserModal({ user, onClose }) {
+  const [nombre, setNombre] = useState(user.nombre || '');
+  const [rol, setRol] = useState(user.rol || 'medico');
+  const [codigo, setCodigo] = useState(user.codigo || '');
+  const [pin, setPin] = useState(user.pin || '');
+  const [email, setEmail] = useState(user.email || '');
+  const [password, setPassword] = useState(user.password || '');
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState('');
+
+  const clinical = isClinical(rol);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+    setSaving(true);
+    try {
+      await updateUsuario(user.id, { nombre, rol, codigo, pin, email, password });
+      onClose();
+    } catch (err) {
+      setError(err.message || 'No se pudo actualizar el usuario.');
+      setSaving(false);
+    }
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
+      <div className="w-full max-w-md rounded-xl border border-border bg-surface-2 p-6">
+        <form onSubmit={handleSubmit}>
+          <h3 className="font-mono font-semibold text-cream">Editar usuario</h3>
+
+          <label className="mt-4 block text-sm text-muted" htmlFor="edit-nombre">
+            Nombre
+          </label>
+          <input
+            id="edit-nombre"
+            required
+            value={nombre}
+            onChange={(event) => setNombre(event.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+          />
+
+          <label className="mt-4 block text-sm text-muted" htmlFor="edit-rol">
+            Rol
+          </label>
+          <select
+            id="edit-rol"
+            value={rol}
+            onChange={(event) => setRol(event.target.value)}
+            className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+          >
+            {Object.entries(ROLE_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </select>
+
+          {clinical ? (
+            <>
+              <label className="mt-4 block text-sm text-muted" htmlFor="edit-codigo">
+                Código
+              </label>
+              <input
+                id="edit-codigo"
+                required
+                value={codigo}
+                onChange={(event) => setCodigo(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 font-mono text-cream outline-none focus:border-pink"
+              />
+
+              <label className="mt-4 block text-sm text-muted" htmlFor="edit-pin">
+                PIN
+              </label>
+              <input
+                id="edit-pin"
+                required
+                value={pin}
+                onChange={(event) => setPin(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 font-mono text-cream outline-none focus:border-pink"
+              />
+            </>
+          ) : (
+            <>
+              <label className="mt-4 block text-sm text-muted" htmlFor="edit-email">
+                Correo
+              </label>
+              <input
+                id="edit-email"
+                type="email"
+                required
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+              />
+
+              <label className="mt-4 block text-sm text-muted" htmlFor="edit-password">
+                Contraseña
+              </label>
+              <input
+                id="edit-password"
+                type="text"
+                required
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                className="mt-1 w-full rounded-lg border border-border bg-bg px-3 py-2 text-cream outline-none focus:border-pink"
+              />
+            </>
+          )}
+
+          {error && (
+            <p className="mt-4 rounded-lg border border-red bg-red/10 px-3 py-2 text-sm text-red">
+              {error}
+            </p>
+          )}
+
+          <div className="mt-6 flex justify-end gap-3">
+            <button
+              type="button"
+              onClick={onClose}
+              className="rounded-lg border border-border px-4 py-2 text-sm text-cream transition hover:bg-surface-3"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="rounded-lg bg-pink px-4 py-2 text-sm font-semibold text-bg transition hover:opacity-90 disabled:opacity-60"
+            >
+              {saving ? 'Guardando…' : 'Guardar cambios'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
 export default function Usuarios() {
   const [usuarios, setUsuarios] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [showNew, setShowNew] = useState(false);
+  const [editing, setEditing] = useState(null);
   const [busyId, setBusyId] = useState(null);
 
   useEffect(() => {
@@ -296,6 +434,12 @@ export default function Usuarios() {
                           </button>
                         )}
                         <button
+                          onClick={() => setEditing(user)}
+                          className="rounded-lg border border-border px-3 py-1.5 text-xs text-cream transition hover:bg-surface-3"
+                        >
+                          Editar
+                        </button>
+                        <button
                           disabled={busyId === user.id}
                           onClick={() => toggleActive(user)}
                           className="rounded-lg border border-border px-3 py-1.5 text-xs text-cream transition hover:bg-surface-3 disabled:opacity-60"
@@ -312,9 +456,8 @@ export default function Usuarios() {
         )}
       </main>
 
-      {showNew && (
-        <NewUserModal onClose={() => setShowNew(false)} onCreated={() => {}} />
-      )}
+      {showNew && <NewUserModal onClose={() => setShowNew(false)} />}
+      {editing && <EditUserModal user={editing} onClose={() => setEditing(null)} />}
     </>
   );
 }
