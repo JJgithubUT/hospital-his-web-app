@@ -1,14 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { adjustStock, subscribeInventario, updateInventarioItem } from '../data/inventory';
+import {
+  adjustStock,
+  createInventarioItem,
+  subscribeInventario,
+  updateInventarioItem,
+} from '../data/inventory';
 
-function EditItemModal({ item, onClose, adminId }) {
-  const [nombre, setNombre] = useState(item.nombre || '');
-  const [presentacion, setPresentacion] = useState(item.presentacion || '');
-  const [dosisSugerida, setDosisSugerida] = useState(item.dosisSugerida || '');
-  const [via, setVia] = useState(item.via || '');
-  const [stock, setStock] = useState(item.stock ?? 0);
-  const [stockMinimo, setStockMinimo] = useState(item.stockMinimo ?? 0);
+function ItemFormModal({ item, onClose, adminId }) {
+  const isNew = !item;
+  const [nombre, setNombre] = useState(item?.nombre || '');
+  const [presentacion, setPresentacion] = useState(item?.presentacion || '');
+  const [dosisSugerida, setDosisSugerida] = useState(item?.dosisSugerida || '');
+  const [via, setVia] = useState(item?.via || '');
+  const [stock, setStock] = useState(item?.stock ?? 0);
+  const [stockMinimo, setStockMinimo] = useState(item?.stockMinimo ?? 0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
 
@@ -17,14 +23,15 @@ function EditItemModal({ item, onClose, adminId }) {
     setError('');
     setSaving(true);
     try {
-      await updateInventarioItem(
-        item.id,
-        { nombre, presentacion, dosisSugerida, via, stock, stockMinimo },
-        adminId,
-      );
+      const payload = { nombre, presentacion, dosisSugerida, via, stock, stockMinimo };
+      if (isNew) {
+        await createInventarioItem(payload, adminId);
+      } else {
+        await updateInventarioItem(item.id, payload, adminId);
+      }
       onClose();
     } catch (err) {
-      setError(err.message || 'No se pudo actualizar el medicamento.');
+      setError(err.message || 'No se pudo guardar el medicamento.');
       setSaving(false);
     }
   };
@@ -33,7 +40,9 @@ function EditItemModal({ item, onClose, adminId }) {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-6">
       <div className="w-full max-w-md rounded-xl border border-border bg-surface-2 p-6">
         <form onSubmit={handleSubmit}>
-          <h3 className="font-mono font-semibold text-cream">Editar medicamento</h3>
+          <h3 className="font-mono font-semibold text-cream">
+            {isNew ? 'Nuevo medicamento' : 'Editar medicamento'}
+          </h3>
 
           <label className="mt-4 block text-sm text-muted" htmlFor="edit-nombre">
             Nombre
@@ -134,7 +143,7 @@ function EditItemModal({ item, onClose, adminId }) {
               disabled={saving}
               className="rounded-lg bg-pink px-4 py-2 text-sm font-semibold text-bg transition hover:opacity-90 disabled:opacity-60"
             >
-              {saving ? 'Guardando…' : 'Guardar cambios'}
+              {saving ? 'Guardando…' : isNew ? 'Crear medicamento' : 'Guardar cambios'}
             </button>
           </div>
         </form>
@@ -151,6 +160,7 @@ export default function Farmacia() {
   const [search, setSearch] = useState('');
   const [busyId, setBusyId] = useState(null);
   const [editing, setEditing] = useState(null);
+  const [showNew, setShowNew] = useState(false);
 
   useEffect(() => {
     const unsubscribe = subscribeInventario(
@@ -188,13 +198,21 @@ export default function Farmacia() {
       <header className="border-b border-border px-8 py-6">
         <div className="flex items-center justify-between gap-4">
           <h1 className="font-mono text-xl font-bold">Farmacia</h1>
-          <input
-            type="search"
-            placeholder="Buscar medicamento…"
-            value={search}
-            onChange={(event) => setSearch(event.target.value)}
-            className="w-64 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-cream outline-none focus:border-pink"
-          />
+          <div className="flex items-center gap-3">
+            <input
+              type="search"
+              placeholder="Buscar medicamento…"
+              value={search}
+              onChange={(event) => setSearch(event.target.value)}
+              className="w-64 rounded-lg border border-border bg-surface px-3 py-2 text-sm text-cream outline-none focus:border-pink"
+            />
+            <button
+              onClick={() => setShowNew(true)}
+              className="rounded-lg bg-pink px-4 py-2 text-sm font-semibold text-bg transition hover:opacity-90"
+            >
+              + Nuevo medicamento
+            </button>
+          </div>
         </div>
       </header>
 
@@ -287,7 +305,10 @@ export default function Farmacia() {
       </main>
 
       {editing && (
-        <EditItemModal item={editing} onClose={() => setEditing(null)} adminId={session?.id} />
+        <ItemFormModal item={editing} onClose={() => setEditing(null)} adminId={session?.id} />
+      )}
+      {showNew && (
+        <ItemFormModal onClose={() => setShowNew(false)} adminId={session?.id} />
       )}
     </>
   );

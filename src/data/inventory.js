@@ -1,7 +1,24 @@
-import { ref, runTransaction, update, onValue } from 'firebase/database';
+import { ref, push, runTransaction, update, onValue } from 'firebase/database';
 import { rtdb } from '../firebase';
 
 const inventarioRef = ref(rtdb, 'inventario');
+
+export async function createInventarioItem(
+  { nombre, presentacion, dosisSugerida, via, stock, stockMinimo },
+  adminId,
+) {
+  const now = new Date().toISOString();
+  await push(inventarioRef, {
+    nombre,
+    presentacion,
+    dosisSugerida,
+    via,
+    stock: Number(stock),
+    stockMinimo: Number(stockMinimo),
+    actualizadoEn: now,
+    actualizadoPor: adminId || null,
+  });
+}
 
 export function subscribeInventario(onData, onError) {
   return onValue(
